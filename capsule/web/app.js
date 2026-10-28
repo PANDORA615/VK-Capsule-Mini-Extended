@@ -2,8 +2,8 @@
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 let token = sessionStorage.getItem("capsule-token") || "";
-let state = {radio: null, device: null, ai: null, stations: [], favorites: []};
-let zone = "top", toastTimer, audioUrl, networkAvailable = true, busyLight = false;
+let state = {audio: null, device: null, ai: null};
+let zone = "top", toastTimer, audioUrl, busyLight = false;
 function requestId() {
   if (crypto.randomUUID) return crypto.randomUUID();
   return [...crypto.getRandomValues(new Uint8Array(16))].map(n=>n.toString(16).padStart(2,"0")).join("");
@@ -24,17 +24,16 @@ async function api(path, body, method) {
   const response = await fetch("/api/v1/" + path, {...options, signal: AbortSignal.timeout(95000)});
   const data = await response.json();
   if (!response.ok) {
-    if (data.candidates?.length) renderStations("#all-stations", data.candidates);
     throw new Error(typeof data.detail === "string" ? data.detail : "Проверьте введённые данные");
   }
   return data;
 }
 function act(fn) { return async event => { try { await fn(event); } catch (error) { toast(error.message); } }; }
 function tab(name) {
-  if (!["home", "radio", "lights", "settings"].includes(name)) name = "home";
+  if (!["home", "setup", "lights", "settings"].includes(name)) name = "home";
   $$(".tab").forEach(el => el.classList.toggle("active", el.id === "tab-" + name));
   $$(".nav-item").forEach(el => {el.classList.toggle("active", el.dataset.tab === name); el.setAttribute("aria-current", el.dataset.tab === name ? "page" : "false");});
-  $("#page-label").textContent = {home:"Обзор", radio:"Радио", lights:"Свет", settings:"Настройки"}[name];
+  $("#page-label").textContent = {home:"Обзор", setup:"Установка", lights:"Свет", settings:"Настройки"}[name];
   history.replaceState(null, "", "#" + name);
   if (name === "lights") renderEditor();
   window.scrollTo({top:0, behavior:"smooth"});
@@ -47,49 +46,13 @@ $$('[data-zone]').forEach(el => el.onclick = () => {zone = el.dataset.zone; rend
 $("#top-hotspot").onclick = () => openZone("top");
 $("#front-hotspot").onclick = () => openZone("front");
 
-function stationLogo(station) {
-  return ({dacha:"Дача", russkoe:"РР", avto:"АВТО", retro:"Ретро"})[station.id] || station.name.slice(0,2).toUpperCase();
-}
-function renderStations(target, stations) {
-  const container = $(target); container.replaceChildren();
-  for (const station of stations) {
-    const card = document.createElement("article"); card.className = "station-card";
-    const button = document.createElement("button"); button.className = "station-button";
-    button.setAttribute("aria-label", "Включить " + station.name);
-    const logo = document.createElement("span"); logo.className = "station-logo"; logo.textContent = stationLogo(station);
-    const info = document.createElement("span"); info.className = "station-info";
-    const title = document.createElement("strong"); title.textContent = station.name;
-    const note = document.createElement("small"); note.textContent = station.source === "simulation" ? "Демо-станция" : "Интернет-радио";
-    info.append(title, note); button.append(logo,info); card.append(button);
-    button.onclick = act(async () => {await api("radio/play", {station:station.id}); await refresh();});
-    const fav = document.createElement("button"); fav.className = "favorite-button";
-    const saved = state.favorites.some(s => s.id === station.id);
-    fav.classList.toggle("saved", saved); fav.setAttribute("aria-label", (saved ? "Убрать из избранного: " : "В избранное: ") + station.name);
-    fav.innerHTML = '<svg><use href="#i-star"/></svg>';
-    fav.onclick = act(async () => {
-      if (saved) await api("radio/favorites/" + encodeURIComponent(station.id), undefined, "DELETE");
-      else await api("radio/favorites", {station:station.id});
-      await loadStations(); toast(saved ? "Удалено из избранного" : "Добавлено в избранное");
-    }); card.append(fav); container.append(card);
-  }
-}
-async function loadStations() {
-  [state.stations, state.favorites] = await Promise.all([api("radio/stations"),api("radio/favorites")]);
-  renderStations("#home-stations", state.stations.slice(0,4)); renderStations("#all-stations",state.stations);
-  renderStations("#favorites",state.favorites);
-}
-const stateText = {IDLE:"Радио выключено",CONNECTING:"Подключаемся…",PLAYING:"В эфире",BUFFERING:"Буферизация…",PAUSED:"На паузе",RECONNECTING:"Восстанавливаем связь…",ERROR:"Поток недоступен"};
-function renderRadio() {
-  const r = state.radio; if (!r) return;
-  $("#now-name").textContent = r.station?.name || "Пора включить любимое";
-  $("#now-state").textContent = (r.simulation ? "Симуляция · " : "") + stateText[r.state];
-  $(".now-card").classList.toggle("playing",r.state === "PLAYING");
-  $("#volume").max = r.max_volume;
-  if (document.activeElement !== $("#volume")) $("#volume").value = r.volume;
-  $("#volume-value").textContent = r.volume + "%";
-  const active = ["PLAYING", "BUFFERING", "CONNECTING", "RECONNECTING"].includes(r.state);
-  $("#main-play").innerHTML = active ? '<span aria-hidden="true">Ⅱ</span>' : '<svg><use href="#i-play"/></svg>';
-  $("#main-play").setAttribute("aria-label", active ? "Пауза" : "Включить радио");
+function renderAudio() {
+  if(!state.audio) return;
+  const a=state.audio;
+  $("#volume").max=a.max_volume;
+  if(document.activeElement!==$("#volume"))$("#volume").value=a.volume;
+  $("#volume-value").textContent=a.volume+"%";
+  $("#reply-audio").volume=a.volume/100;
 }
 function applyLights() {
   if (!state.device) return;
@@ -156,33 +119,20 @@ $$('[data-preset]').forEach(el => el.onclick = act(async () => {
   await api("lights/top",value); await api("lights/front",{...value,effect:"steady"});
   await refresh(); renderEditor(); toast("Световое настроение сохранено");
 }));
-async function togglePlay() {
-  const r = state.radio;
-  if (["PLAYING","BUFFERING"].includes(r?.state)) await api("radio/pause",{});
-  else if (["CONNECTING","RECONNECTING"].includes(r?.state)) await api("radio/stop",{});
-  else if (r?.last_id || r?.state === "PAUSED") await api("radio/resume",{});
-  else if (state.stations.length) await api("radio/play",{station:state.stations[0].id});
-  else {tab("radio"); toast("Найдите или добавьте радиостанцию");}
-  await refresh();
-}
-$("#main-play").onclick = $("#touch-play").onclick = act(togglePlay);
-$("#previous").onclick = act(async () => {await api("radio/previous",{}); await refresh();});
-$("#next").onclick = act(async () => {await api("radio/next",{}); await refresh();});
-$("#stop").onclick = act(async () => {await api("radio/stop",{}); await refresh();});
+$("#touch-ask").onclick = () => {tab("home");$("#command").focus();};
+$("#stop-answer").onclick = () => {
+  $("#reply-audio").pause();$("#reply-audio").removeAttribute("src");
+  answerEpoch++; requestController?.abort();
+  $("#command-reply").textContent="Ответ остановлен";
+};
 $("#volume").oninput = () => $("#volume-value").textContent = $("#volume").value + "%";
-$("#volume").onchange = act(async () => {await api("audio/volume",{value:Number($("#volume").value)}); await refresh();});
+$("#volume").onchange = act(async () => {state.audio=await api("audio/volume",{value:Number($("#volume").value)});renderAudio();});
 for (const [id,delta] of [["#touch-plus",10],["#touch-minus",-10]]) $(id).onclick = act(async () => {
-  await api("audio/volume",{value:Math.max(0,Math.min(100,(state.radio?.volume || 0) + delta))}); await refresh();
+  await api("commands",{text:delta>0 ? "громче" : "тише"});await refresh();
 });
-$("#search-form").onsubmit = act(async event => {
-  event.preventDefault(); const result = await api("radio/stations?query=" + encodeURIComponent($("#station-query").value));
-  renderStations("#all-stations",result); $("#catalog-note").textContent = result.length ? "Выберите станцию" : "Не найдено. Каталог может быть недоступен; попробуйте свой URL.";
-});
-$("#add-station-form").onsubmit = act(async event => {
-  event.preventDefault(); await api("radio/stations",{id:requestId(),name:$("#custom-name").value,urls:[$("#custom-url").value],source:"owner"});
-  await loadStations(); event.target.reset(); toast("Станция сохранена. Воспроизведение проверяется при запуске.");
-});
+let requestController=null,answerEpoch=0;
 async function answerAudio(reply) {
+  if(reply.playback==="stop")$("#reply-audio").pause();
   if (!reply.audio) return;
   if (audioUrl) URL.revokeObjectURL(audioUrl);
   const bytes = Uint8Array.from(atob(reply.audio), c => c.charCodeAt(0));
@@ -191,59 +141,58 @@ async function answerAudio(reply) {
   try {await $("#reply-audio").play();} catch {toast("Разрешите воспроизведение звука в браузере");}
 }
 $("#command-form").onsubmit = act(async event => {
-  event.preventDefault(); const button = event.target.querySelector("button"); button.disabled = true;
-  $("#command-reply").textContent = "Выполняю…";
-  try {const reply = await api("commands",{text:$("#command").value});
-    $("#command-reply").textContent = reply.text; await answerAudio(reply); await refresh();
-    if (reply.candidates?.length) {tab("radio");renderStations("#all-stations",reply.candidates);}
-  } finally {button.disabled = false;}
+  event.preventDefault();const button=event.target.querySelector("button");button.disabled=true;
+  requestController?.abort();requestController=new AbortController();const epoch=++answerEpoch;
+  $("#command-reply").textContent="Думаю…";
+  try {
+    const response=await fetch("/api/v1/commands",{method:"POST",headers:{"Content-Type":"application/json",...(token?{Authorization:"Bearer "+token}:{})},body:JSON.stringify({text:$("#command").value}),signal:AbortSignal.any([requestController.signal,AbortSignal.timeout(95000)])});
+    const reply=await response.json();if(!response.ok)throw new Error(reply.detail||"Ошибка ответа");
+    if(epoch!==answerEpoch)return;
+    $("#command-reply").textContent=reply.text;await answerAudio(reply);await refresh();
+  } catch(error) {if(error.name!=="AbortError")throw error;}
+  finally {button.disabled=false;}
 });
 async function savePreferences() {
-  const value = {resume_after_reboot:$("#auto-resume").checked,microphone_muted:$("#mic-muted").checked,wake_word:$("#wake-word").value.trim()};
+  const value = {microphone_muted:$("#mic-muted").checked,wake_word:$("#wake-word").value.trim(),case_color:$("#case-color").value};
   state.device.preferences = await api("preferences", value); toast("Настройки сохранены");
+  document.documentElement.dataset.case=state.device.preferences.case_color;
 }
-$("#auto-resume").onchange = $("#mic-muted").onchange = $("#save-wake").onclick = act(savePreferences);
+$("#mic-muted").onchange = $("#save-wake").onclick = act(savePreferences);
+$("#case-color").onchange = act(savePreferences);
 $("#ai-mode").onchange = act(async () => {await api("assistant/mode",{mode:$("#ai-mode").value}); await refresh();});
 $("#save-token").onclick = act(async () => {
   token = $("#owner-token").value.trim(); sessionStorage.setItem("capsule-token",token);
-  await refresh(); await loadStations(); renderEditor(); toast("Подключено");
-});
-$("#sim-network").onclick = act(async () => {
-  networkAvailable = !networkAvailable; await api("simulation/network",{available:networkAvailable});
-  $("#sim-network").textContent = networkAvailable ? "Проверить обрыв сети" : "Восстановить сеть в симуляции";
-  toast(networkAvailable ? "Сеть восстановлена" : "Симуляция потери сети для радио");
+  await refresh(); renderEditor(); toast("Подключено");
 });
 async function refresh() {
   try {
-    [state.radio,state.device,state.ai] = await Promise.all([api("radio/status"),api("device"),api("assistant/status")]);
+    [state.audio,state.device,state.ai] = await Promise.all([api("audio/status"),api("device"),api("assistant/status")]);
     document.body.classList.remove("disconnected"); $(".sidebar-bottom").classList.remove("disconnected");
     $("#connection").textContent = "Сервер подключён";
     const simulated = state.device.mode === "simulation";
-    $("#mode-badge").textContent = simulated ? "Режим симуляции" : "Linux · mpv";
-    $("#device-state").textContent = "Виртуальные индикаторы";
-    $("#catalog-note").textContent = simulated ? "Демонстрационные станции: звук не воспроизводится. Для настоящего радио включите host-режим." : "Звук играет на Linux-сервере с mpv. Сначала найдите станцию или добавьте свой URL.";
-    $("#assistant-status").textContent = state.ai.active_model || "Локальные команды доступны";
-    $("#auto-resume").checked = state.device.preferences.resume_after_reboot;
+    $("#mode-badge").textContent = simulated ? "Режим симуляции" : "Сервер подключён";
+    $("#assistant-status").textContent = state.ai.active_model || "Модель не активна";
     $("#mic-muted").checked = state.device.preferences.microphone_muted;
+    document.documentElement.dataset.case=state.device.preferences.case_color;
+    if(document.activeElement!==$("#case-color"))$("#case-color").value=state.device.preferences.case_color;
     if (document.activeElement !== $("#wake-word")) $("#wake-word").value = state.device.preferences.wake_word;
     if (document.activeElement !== $("#ai-mode")) $("#ai-mode").value = state.ai.mode;
-    $("#sim-network").hidden = !simulated;
     $("#ai-details").replaceChildren();
     const labels = {PRIMARY_LIVE:"Gemini Live",FALLBACK_FLASH_LITE:"Flash-Lite + Piper",OFFLINE_COMMANDS_ONLY:"Только локальные команды"};
     for (const text of ["Состояние: " + labels[state.ai.state],"Модель: " + (state.ai.active_model || "не активна"),"Причина: " + state.ai.reason,"Квота: нет достоверных данных"]){const p=document.createElement("p");p.textContent=text;$("#ai-details").append(p);}
     $("#device-details").textContent = "Профиль платы: не определён · Индикаторы: виртуальные · STT: " + (state.device.voice.stt_configured ? "настроен" : "не настроен") + " · TTS: " + (state.device.voice.tts_configured ? "настроен" : "не настроен");
-    renderRadio(); applyLights();
+    renderAudio(); applyLights();
   } catch(error) {
     document.body.classList.add("disconnected");$(".sidebar-bottom").classList.add("disconnected");
     $("#connection").textContent="Нет подключения";$("#mode-badge").textContent="Сервер недоступен";
     throw error;
   }
 }
-$("#record-command").onclick = act(async () => {
+$$(".record-command").forEach(recordButton=>recordButton.onclick=act(async () => {
   if (!state.device?.voice.stt_configured) throw new Error("Сначала настройте VOSK_MODEL_PATH на сервере");
   if (state.device.preferences.microphone_muted) throw new Error("Микрофон выключен в приложении");
   if (!navigator.mediaDevices) throw new Error("Запись требует HTTPS или localhost");
-  const button=$("#record-command");button.disabled=true;
+  const epoch=++answerEpoch;$$(".record-command").forEach(b=>b.disabled=true);
   let stream,context,source,processor;
   try {
     stream = await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true},video:false});
@@ -262,12 +211,13 @@ $("#record-command").onclick = act(async () => {
     const response=await fetch("/api/v1/voice/transcribe",{method:"POST",headers:{"Content-Type":"application/octet-stream",...(token?{Authorization:"Bearer "+token}:{})},body:view.buffer,signal:AbortSignal.timeout(95000)});
     const reply=await response.json();if(!response.ok)throw new Error(reply.detail||"Ошибка голосовой команды");
     $("#voice-note").textContent=(reply.transcript ? "Вы: "+reply.transcript+". " : "")+reply.text;
-    await answerAudio(reply);await refresh();
-  } finally {processor?.disconnect();source?.disconnect();stream?.getTracks().forEach(t=>t.stop());if(context)await context.close();button.disabled=false;}
-});
+    if(epoch!==answerEpoch)return;
+    $("#command-reply").textContent=reply.text;await answerAudio(reply);await refresh();
+  } finally {processor?.disconnect();source?.disconnect();stream?.getTracks().forEach(t=>t.stop());if(context)await context.close(); $$(".record-command").forEach(b=>b.disabled=false);}
+}));
 $("#today").textContent=new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",weekday:"long"});
 function clock(){const value=new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});$("#clock").textContent=value;$(".front-preview").textContent=value;}
 clock();setInterval(clock,10000);
 tab(location.hash.slice(1)||"home");
-(async()=>{try{await refresh();await loadStations();renderEditor();}catch(error){toast(error.message);}})();
+(async()=>{try{await refresh();renderEditor();}catch(error){toast(error.message);}})();
 setInterval(()=>refresh().catch(()=>{}),2500);

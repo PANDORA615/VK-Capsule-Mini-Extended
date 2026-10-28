@@ -7,7 +7,7 @@
     },
     {
       "width": 320,
-      "tab": "radio",
+      "tab": "setup",
       "overflow": false
     },
     {
@@ -27,7 +27,7 @@
     },
     {
       "width": 360,
-      "tab": "radio",
+      "tab": "setup",
       "overflow": false
     },
     {
@@ -47,7 +47,7 @@
     },
     {
       "width": 390,
-      "tab": "radio",
+      "tab": "setup",
       "overflow": false
     },
     {
@@ -67,7 +67,7 @@
     },
     {
       "width": 600,
-      "tab": "radio",
+      "tab": "setup",
       "overflow": false
     },
     {
@@ -87,7 +87,7 @@
     },
     {
       "width": 768,
-      "tab": "radio",
+      "tab": "setup",
       "overflow": false
     },
     {
@@ -107,7 +107,7 @@
     },
     {
       "width": 1024,
-      "tab": "radio",
+      "tab": "setup",
       "overflow": false
     },
     {
@@ -127,7 +127,7 @@
     },
     {
       "width": 1440,
-      "tab": "radio",
+      "tab": "setup",
       "overflow": false
     },
     {
@@ -147,7 +147,7 @@
     },
     {
       "width": 1920,
-      "tab": "radio",
+      "tab": "setup",
       "overflow": false
     },
     {
@@ -163,12 +163,14 @@
   ],
   "javascript_errors": [],
   "interactions": [
-    "play_station",
-    "top_light_color",
-    "front_light_off",
+    "five_case_colors",
+    "independent_light_zones",
     "reload_persistence",
-    "local_volume_command",
+    "general_question_without_prefix",
+    "reply_volume",
+    "optional_prefix",
     "microphone_mute",
-    "favorites"
+    "stop_answer",
+    "installation_choices"
   ]
 }

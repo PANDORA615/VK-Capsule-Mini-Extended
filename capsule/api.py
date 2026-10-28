@@ -4,7 +4,6 @@ import hashlib
 import secrets
 import time
 from collections import OrderedDict
-from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
@@ -14,19 +13,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from capsule.assistant import Router, Unconfigured
+from capsule.audio import ReplyAudio
 from capsule.bridge import GeminiCapsulaBridge, MarusyaBridge
-from capsule.catalog import Catalog, Station
 from capsule.config import Settings
 from capsule.intents import parse
 from capsule.lights import Lights, Zone
-from capsule.player import MpvPlayer, SimulatedPlayer
 from capsule.providers import GoogleFlash, GoogleLive, PiperTTS, VoskSTT
-from capsule.radio import Radio
 from capsule.storage import Store
-
-
-class PlayRequest(BaseModel):
-    station: str = Field(min_length=1, max_length=200)
 
 
 class VolumeRequest(BaseModel):
@@ -42,29 +35,17 @@ class CommandRequest(BaseModel):
 
 
 class Preferences(BaseModel):
-    resume_after_reboot: bool = False
     microphone_muted: bool = False
-    wake_word: str = Field(default="маруся", min_length=1, max_length=30, pattern=r"^[\w ]+$")
+    wake_word: str = Field(default="", max_length=30, pattern=r"^[\w ]*$")
+    case_color: Literal["light_gray", "green", "blue", "terracotta", "dark_gray"] = "dark_gray"
 
 
 def create_app(settings: Settings | None = None):
     cfg = settings or Settings()
-    simulation = cfg.capsule_mode == "simulation"
-    catalog = Catalog(
-        Store(cfg.capsule_state_dir / "stations.json"), cfg.radio_directory_url, simulation
-    )
-    player = SimulatedPlayer() if simulation else MpvPlayer()
-    radio = Radio(
-        catalog,
-        Store(cfg.capsule_state_dir / "radio.json"),
-        player,
-        cfg.radio_max_volume,
-        cfg.radio_resume_after_reboot,
-    )
+    audio = ReplyAudio(Store(cfg.capsule_state_dir / "audio.json"), cfg.assistant_max_volume)
     lights = Lights(Store(cfg.capsule_state_dir / "lights.json"))
     preferences_store = Store(cfg.capsule_state_dir / "preferences.json")
     preferences = Preferences(**preferences_store.read())
-    preferences.resume_after_reboot = radio.resume_after_reboot
     key = cfg.google_api_key.get_secret_value()
     router = Router(
         GoogleLive(key, cfg.gemini_primary_model) if key else Unconfigured(),
@@ -83,17 +64,9 @@ def create_app(settings: Settings | None = None):
     )
     voice_lock = asyncio.Lock()
 
-    @asynccontextmanager
-    async def lifespan(app):
-        await radio.startup()
-        yield
-        await radio.stop()
-
-    app = FastAPI(
-        title="Капсула · Дом", version="0.1.0", lifespan=lifespan, docs_url=None, redoc_url=None
-    )
-    app.state.radio, app.state.router, app.state.lights = radio, router, lights
-    app.state.catalog, app.state.settings = catalog, cfg
+    app = FastAPI(title="Капсула · Дом", version="0.2.0", docs_url=None, redoc_url=None)
+    app.state.router, app.state.lights, app.state.audio = router, lights, audio
+    app.state.settings = cfg
     idem: OrderedDict[str, tuple] = OrderedDict()
     idem_lock = asyncio.Lock()
 
@@ -169,7 +142,7 @@ def create_app(settings: Settings | None = None):
             "voice": {
                 "stt_configured": bool(cfg.vosk_model_path),
                 "tts_configured": bool(cfg.piper_model_path),
-                "wake_word_backend": "transcript_gate",
+                "wake_word_backend": "optional_transcript_prefix",
                 "aec": "unverified",
             },
         }
@@ -213,75 +186,13 @@ def create_app(settings: Settings | None = None):
         router.mode = body.mode
         return router.status()
 
-    @app.get("/api/v1/radio/stations")
-    async def stations(query: str = ""):
-        return [s.model_dump() for s in await catalog.search(query[:200])]
-
-    @app.post("/api/v1/radio/stations")
-    async def add_station(body: Station):
-        return catalog.add(body)
-
-    @app.get("/api/v1/radio/status")
-    async def radio_status():
-        return radio.status()
-
-    @app.post("/api/v1/radio/play")
-    async def play(body: PlayRequest):
-        found = await catalog.search(body.station)
-        if len(found) != 1:
-            return JSONResponse(
-                {
-                    "detail": "Какое именно радио?" if found else "Станция не найдена",
-                    "candidates": [s.model_dump() for s in found[:3]],
-                },
-                status_code=409 if found else 404,
-            )
-        return await radio.play(found[0])
-
-    @app.post("/api/v1/radio/stop")
-    async def stop():
-        return await radio.stop()
-
-    @app.post("/api/v1/radio/pause")
-    async def pause():
-        return await radio.pause()
-
-    @app.post("/api/v1/radio/resume")
-    async def resume():
-        return await radio.resume()
-
-    @app.post("/api/v1/radio/next")
-    async def next_station():
-        return await radio.step(1)
-
-    @app.post("/api/v1/radio/previous")
-    async def previous_station():
-        return await radio.step(-1)
-
-    @app.get("/api/v1/radio/favorites")
-    async def favorites():
-        return [
-            catalog.stations[id].model_dump() for id in catalog.favorites if id in catalog.stations
-        ]
-
-    @app.post("/api/v1/radio/favorites")
-    async def add_favorite(body: PlayRequest):
-        if body.station not in catalog.stations:
-            raise HTTPException(404, "Station not found")
-        if body.station not in catalog.favorites:
-            catalog.favorites.append(body.station)
-        catalog.save()
-        return await favorites()
-
-    @app.delete("/api/v1/radio/favorites/{station_id}")
-    async def remove_favorite(station_id: str):
-        catalog.favorites = [id for id in catalog.favorites if id != station_id]
-        catalog.save()
-        return await favorites()
+    @app.get("/api/v1/audio/status")
+    async def audio_status():
+        return audio.status()
 
     @app.post("/api/v1/audio/volume")
     async def volume(body: VolumeRequest):
-        return await radio.set_volume(body.value)
+        return audio.set_volume(body.value)
 
     @app.post("/api/v1/lights/{zone}")
     async def set_light(zone: Literal["front", "top"], body: Zone):
@@ -291,44 +202,18 @@ def create_app(settings: Settings | None = None):
     async def set_preferences(body: Preferences):
         preferences.microphone_muted = body.microphone_muted
         preferences.wake_word = body.wake_word
-        preferences.resume_after_reboot = body.resume_after_reboot
-        radio.resume_after_reboot = body.resume_after_reboot
+        preferences.case_color = body.case_color
         preferences_store.write(preferences.model_dump())
-        radio.save()
         return preferences
 
     async def execute(text: str, pcm: bytes | None = None):
-        intent = parse(text, preferences.wake_word)
-        result = None
-        if intent.action == "play":
-            matches = await catalog.search(str(intent.value))
-            if len(matches) != 1:
-                return {
-                    "text": "Какое именно радио?" if matches else "Станция не найдена",
-                    "candidates": [s.model_dump() for s in matches[:3]],
-                    "local": True,
-                }
-            result = await radio.play(matches[0])
-        elif intent.action == "stop":
-            result = await radio.stop()
-        elif intent.action == "pause":
-            result = await radio.pause()
-        elif intent.action == "resume":
-            result = await radio.resume()
-        elif intent.action in {"volume", "volume_delta"}:
+        intent = parse(text, preferences.wake_word or "маруся")
+        if intent.action in {"volume", "volume_delta"}:
             value = int(str(intent.value))
-            result = await radio.set_volume(
-                value if intent.action == "volume" else radio.volume + value
-            )
-        elif intent.action in {"next", "previous"}:
-            result = await radio.step(1 if intent.action == "next" else -1)
-        elif intent.action == "status":
-            return {
-                "text": radio.station.name if radio.station else "Радио выключено",
-                "local": True,
-            }
-        if result is not None:
-            return {"text": "Готово", "radio": result, "local": True}
+            result = audio.set_volume(value if intent.action == "volume" else audio.volume + value)
+            return {"text": "Громкость ответа изменена", "audio_settings": result, "local": True}
+        if intent.action == "stop_answer":
+            return {"text": "Озвучка остановлена", "playback": "stop", "local": True}
         answer = await router.ask(text, pcm)
         return {
             "text": answer.text,
@@ -347,14 +232,12 @@ def create_app(settings: Settings | None = None):
         if not pcm or len(pcm) > 960000 or len(pcm) % 2:
             raise HTTPException(400, "Нужен PCM s16le mono 16kHz, не более 30 секунд")
         async with voice_lock:
-            await radio.duck(True)
-            try:
-                text = await asyncio.to_thread(stt.transcribe, pcm)
-                if not text.strip():
-                    return {"text": "Не расслышала, повторите", "local": True}
-                return {**await execute(text, pcm), "transcript": text}
-            finally:
-                await radio.duck(False)
+            if preferences.microphone_muted:
+                raise HTTPException(403, "Микрофон выключен в приложении")
+            text = await asyncio.to_thread(stt.transcribe, pcm)
+            if not text.strip():
+                return {"text": "Не расслышала, повторите", "local": True}
+            return {**await execute(text, pcm), "transcript": text}
 
     @app.post("/api/v1/voice/transcribe")
     async def transcribe(request: Request):
@@ -387,15 +270,6 @@ def create_app(settings: Settings | None = None):
             pass
         except (ValueError, TimeoutError, HTTPException):
             await ws.close(code=1008)
-
-    @app.post("/api/v1/simulation/network")
-    async def network(body: dict):
-        if not isinstance(player, SimulatedPlayer):
-            raise HTTPException(404, "Only available in simulation")
-        if not isinstance(body.get("available"), bool):
-            raise HTTPException(422, "available must be boolean")
-        player.network = body["available"]
-        return {"available": player.network}
 
     web = Path(__file__).parent / "web"
 

@@ -5,22 +5,9 @@ import pytest
 from typer.testing import CliRunner
 
 from capsule.bridge import GeminiCapsulaBridge, MarusyaBridge
-from capsule.catalog import Catalog, Station
 from capsule.cli import app
 from capsule.providers import convert_error, pcm_wav
 from capsule.storage import Store
-
-
-def test_alias_fuzzy_and_ambiguity(tmp_path):
-    cat = Catalog(Store(tmp_path / "catalog.json"), "http://unused.invalid", True)
-    assert cat.local("Дачу")[0].id == "dacha"
-    assert cat.local("ретро фм")[0].id == "retro"
-    assert cat.local("авторадио")[0].id == "avto"
-    cat.add(Station(id="other", name="Радио Дача", urls=["https://radio.invalid/live"]))
-    assert len(cat.local("дача")) == 2
-    assert all(
-        s.source != "simulation" for s in Catalog(cat.store, cat.directory, False).stations.values()
-    )
 
 
 async def test_bridge_clock_preserves_config_and_redacts_secret():

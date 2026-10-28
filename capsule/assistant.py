@@ -90,4 +90,4 @@ class Router:
                         )
                         break
             self.state, self.active_model = "OFFLINE_COMMANDS_ONLY", None
-            return Answer("На вопросы сейчас не отвечаю, но радио работает")
+            return Answer("Сейчас не могу ответить. Проверьте настройки ИИ или попробуйте позже.")

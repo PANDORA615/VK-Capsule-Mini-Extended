@@ -58,7 +58,6 @@ def doctor():
         {
             "mode": cfg.capsule_mode,
             "python": "3.12+",
-            "mpv": bool(shutil.which("mpv")),
             "arecord": bool(shutil.which("arecord")),
             "aplay": bool(shutil.which("aplay")),
             "piper": bool(shutil.which("piper")),

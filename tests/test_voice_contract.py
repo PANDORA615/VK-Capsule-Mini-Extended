@@ -9,7 +9,7 @@ from capsule.assistant import ProviderError
 from capsule.providers import PiperTTS, VoskSTT, pcm_wav
 
 
-def test_stt_flash_piper_contract_and_radio_independence(settings, monkeypatch):
+def test_stt_flash_piper_contract(settings, monkeypatch):
     # All external services are contract fixtures. This is not voice quality evidence.
     from google import genai
 
@@ -60,7 +60,6 @@ def test_stt_flash_piper_contract_and_radio_independence(settings, monkeypatch):
         result = client.post("/api/v1/voice/transcribe", content=b"\0\0" * 160)
         assert result.status_code == 200
         assert seen == ["stt", "flash", "piper"]
-        assert app.state.radio.duck_depth == 0
         with wave.open(io.BytesIO(base64.b64decode(result.json()["audio"])), "rb") as wav:
             assert wav.getnframes() == 240
-        assert client.post("/api/v1/commands", json={"text": "Маруся включи Дачу"}).json()["local"]
+        assert client.post("/api/v1/commands", json={"text": "сделай тише"}).json()["local"]

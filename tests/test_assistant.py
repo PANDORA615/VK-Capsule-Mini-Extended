@@ -41,7 +41,7 @@ async def test_auth_error_is_not_quota(code):
 async def test_shared_quota_offline_and_no_repeated_probes():
     live, flash = Fake(429), Fake(429)
     router = Router(live, flash)
-    assert "радио работает" in (await router.ask("Вопрос")).text
+    assert "Сейчас не могу ответить" in (await router.ask("Вопрос")).text
     await router.ask("Другой вопрос")
     assert live.calls == flash.calls == 1
 

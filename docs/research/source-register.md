@@ -8,7 +8,6 @@
 | [Google Models](https://ai.google.dev/gemini-api/docs/models) | В каталоге есть `gemini-3.8-live`, `gemini-3.5-flash-lite` | Документация проверена; API с ключом владельца не проверен |
 | [Google Live](https://ai.google.dev/gemini-api/docs/live-api/capabilities) | Официальный SDK; PCM s16le mono 16 kHz вход, 24 kHz выход | Контрактные проверки; внешний сервис `unverified` |
 | [Google Pricing](https://ai.google.dev/gemini-api/docs/pricing) | Квоты и тарифы зависят от модели/проекта, fallback не гарантирует бесплатности | Проверять перед эксплуатацией |
-| [Radio Browser API](https://api.radio-browser.info/) | Публичный каталог; доступность/права конкретного потока проверяет владелец | HTTP-адаптер и кэш |
 | [Yandex Station Extended](https://github.com/Marker284/yandex-station-extended) | Структурный ориентир документации, CC BY 4.0; не инструкция для VK | Код/образы не заимствованы |
 | [Vosk](https://alphacephei.com/vosk/), [Piper](https://github.com/OHF-Voice/piper1-gpl) | Опциональные локальные движки; модели устанавливаются владельцем с учётом лицензий | Без моделей `unverified` |
 
@@ -22,3 +21,5 @@
 | [v3rt3p/marusya-server](https://github.com/v3rt3p/marusya-server) | API devices, clockEnabled/clockBrightness, GPL-3.0 LICENSE | Код не включён; отдельный HTTP-адаптер |
 | [inmyuse/marusia](https://github.com/inmyuse/marusia) | React/Vite/3D-витрина, non-commercial LICENSE | Не является драйвером; ассеты не использованы |
 | [LibreCapsula](https://t.me/librecapsula) | Карточка Telegram-группы | Сообщения недоступны; технические утверждения unverified |
+
+Дополнение по простому подключению: [VK — создание функции](https://help.mail.ru/marusia/skill/third_party/create/), [VK — Bluetooth](https://help.mail.ru/marusia/musik/bluetooth/) и [кнопки Мини](https://help.mail.ru/marusia/speakers/using/buttons_and_gestures/) подтверждают штатные навыки и Bluetooth-аудиовыход. [Makefile Gemini-for-Capsula](https://github.com/yawaflua/Gemini-for-Capsula/blob/master/Makefile) содержит временные push-agent/try-agent через SSH; совместимость конкретной штатной прошивки остаётся unverified.

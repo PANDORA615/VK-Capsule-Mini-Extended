@@ -18,9 +18,7 @@ class Settings(BaseSettings):
     gemini_fallback_model: str = "gemini-3.5-flash-lite"
     gemini_routing: Literal["auto", "live_only", "fallback_only"] = "auto"
     gemini_cooldown_seconds: int = Field(default=120, ge=1)
-    radio_max_volume: int = Field(default=75, ge=1, le=100)
-    radio_resume_after_reboot: bool = False
-    radio_directory_url: str = "https://de1.api.radio-browser.info"
+    assistant_max_volume: int = Field(default=75, ge=1, le=100)
     vosk_model_path: str = ""
     piper_model_path: str = ""
     marusya_server_url: str = ""
