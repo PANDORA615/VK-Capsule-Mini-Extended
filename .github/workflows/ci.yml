@@ -1,0 +1,51 @@
+name: Check application
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y mpv
+      - run: pip install -e '.[dev,ai]'
+      - run: ruff check capsule tests scripts
+      - run: ruff format --check capsule tests scripts
+      - run: mypy capsule
+      - run: pytest -q --junitxml=test-results/unit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -e '.[dev]'
+      - run: python -m playwright install --with-deps chromium
+      - name: Run application and browser checks
+        shell: bash
+        run: |
+          export CHROMIUM_PATH="$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
+          capsulectl serve > /tmp/capsule-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8080/api/v1/health; then break; fi
+            sleep 1
+          done
+          python scripts/check_ui.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-report
+          path: |
+            docs/assets/*.png
+            docs/qa/browser-results.json

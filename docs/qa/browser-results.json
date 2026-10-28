@@ -1,0 +1,174 @@
+{
+  "checks": [
+    {
+      "width": 320,
+      "tab": "home",
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "tab": "radio",
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "tab": "lights",
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "tab": "settings",
+      "overflow": false
+    },
+    {
+      "width": 360,
+      "tab": "home",
+      "overflow": false
+    },
+    {
+      "width": 360,
+      "tab": "radio",
+      "overflow": false
+    },
+    {
+      "width": 360,
+      "tab": "lights",
+      "overflow": false
+    },
+    {
+      "width": 360,
+      "tab": "settings",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "tab": "home",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "tab": "radio",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "tab": "lights",
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "tab": "settings",
+      "overflow": false
+    },
+    {
+      "width": 600,
+      "tab": "home",
+      "overflow": false
+    },
+    {
+      "width": 600,
+      "tab": "radio",
+      "overflow": false
+    },
+    {
+      "width": 600,
+      "tab": "lights",
+      "overflow": false
+    },
+    {
+      "width": 600,
+      "tab": "settings",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "tab": "home",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "tab": "radio",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "tab": "lights",
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "tab": "settings",
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "tab": "home",
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "tab": "radio",
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "tab": "lights",
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "tab": "settings",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "tab": "home",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "tab": "radio",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "tab": "lights",
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "tab": "settings",
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "tab": "home",
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "tab": "radio",
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "tab": "lights",
+      "overflow": false
+    },
+    {
+      "width": 1920,
+      "tab": "settings",
+      "overflow": false
+    }
+  ],
+  "javascript_errors": [],
+  "interactions": [
+    "play_station",
+    "top_light_color",
+    "front_light_off",
+    "reload_persistence",
+    "local_volume_command",
+    "microphone_mute",
+    "favorites"
+  ]
+}

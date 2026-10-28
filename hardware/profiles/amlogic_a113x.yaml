@@ -1,0 +1,24 @@
+id: amlogic_a113x
+status: hardware_verification_required
+evidence: third_party_publication
+source: https://debianlive.ru/2026/08/vk-mini-legacy-amlogic-a113x-часть-1-ставим-alpine-со-свежим-майнла/
+soc: Amlogic A113X
+board_revision: unknown
+signatures:
+  compatible_contains: a113x
+  usb_vid_pid: null
+kernel_verified: null
+bootloader_verified: null
+drivers:
+  alsa: unverified
+  microphones: unverified
+  wifi: unverified
+  front_display: external_line_display_driver_unverified
+  top_led: external_ringled_driver_unverified
+  buttons: unverified
+backup_method: owner_export_only
+recovery_method: unverified
+flash_write_allowed: false
+limitations:
+  - Published device is not this physical unit
+  - No imported NAND offsets or GPIO assignments

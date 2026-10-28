@@ -1,0 +1,19 @@
+id: unknown
+status: blocked
+evidence: none
+source: null
+soc: unknown
+board_revision: unknown
+signatures: {}
+kernel_verified: null
+bootloader_verified: null
+drivers:
+  alsa: unverified
+  microphones: unverified
+  wifi: unverified
+  front_display: unverified
+  top_led: unverified
+  buttons: unverified
+backup_method: owner_export_only
+recovery_method: unverified
+flash_write_allowed: false

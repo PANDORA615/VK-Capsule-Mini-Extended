@@ -1,0 +1,83 @@
+go: downloading github.com/anthropics/anthropic-sdk-go v1.84.0
+go: downloading google.golang.org/genai v1.76.0
+go: downloading github.com/coder/websocket v1.8.15
+go: downloading cloud.google.com/go/auth v0.9.3
+go: downloading cloud.google.com/go v0.116.0
+go: downloading github.com/google/go-cmp v0.6.0
+go: downloading github.com/gorilla/websocket v1.5.3
+go: downloading github.com/tidwall/sjson v1.2.5
+go: downloading go.opentelemetry.io/otel/trace v1.33.0
+go: downloading github.com/invopop/jsonschema v0.14.0
+go: downloading go.opentelemetry.io/otel v1.33.0
+go: downloading github.com/pb33f/ordered-map/v2 v2.3.1
+go: downloading github.com/standard-webhooks/standard-webhooks/libraries v0.0.1
+go: downloading github.com/tidwall/gjson v1.18.0
+go: downloading golang.org/x/sync v0.16.0
+go: downloading cloud.google.com/go/compute/metadata v0.5.0
+go: downloading go.opencensus.io v0.24.0
+go: downloading golang.org/x/net v0.41.0
+go: downloading github.com/bahlo/generic-list-go v0.2.0
+go: downloading github.com/buger/jsonparser v1.1.2
+go: downloading go.yaml.in/yaml/v4 v4.0.0-rc.2
+go: downloading github.com/google/s2a-go v0.1.8
+go: downloading google.golang.org/grpc v1.66.2
+go: downloading github.com/googleapis/enterprise-certificate-proxy v0.3.4
+go: downloading github.com/tidwall/match v1.1.1
+go: downloading github.com/tidwall/pretty v1.2.1
+go: downloading github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
+go: downloading github.com/go-logr/logr v1.4.2
+go: downloading go.opentelemetry.io/otel/metric v1.33.0
+go: downloading google.golang.org/protobuf v1.34.2
+go: downloading github.com/go-logr/stdr v1.2.2
+go: downloading go.opentelemetry.io/auto/sdk v1.1.0
+go: downloading golang.org/x/text v0.27.0
+go: downloading golang.org/x/crypto v0.40.0
+go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1
+go: downloading golang.org/x/sys v0.35.0
+?   	github.com/yawaflua/marusya-gemini/cmd/marusya-agent	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/cmd/marusya-ask	0.132s
+?   	github.com/yawaflua/marusya-gemini/cmd/marusya-server	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/agent	5.412s
+?   	github.com/yawaflua/marusya-gemini/internal/alarms	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/audio	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/audio/alsa	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/config	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/controller	0.003s
+ok  	github.com/yawaflua/marusya-gemini/internal/controller/amixer	0.004s
+ok  	github.com/yawaflua/marusya-gemini/internal/controller/bluez	2.008s
+?   	github.com/yawaflua/marusya-gemini/internal/controller/mpv	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/controller/playerctl	0.003s
+ok  	github.com/yawaflua/marusya-gemini/internal/controller/stream	0.661s
+ok  	github.com/yawaflua/marusya-gemini/internal/display/seg7	0.116s
+?   	github.com/yawaflua/marusya-gemini/internal/evdev	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/indicator	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/indicator/face	0.450s
+ok  	github.com/yawaflua/marusya-gemini/internal/indicator/ringled	4.399s
+ok  	github.com/yawaflua/marusya-gemini/internal/logging	0.136s
+?   	github.com/yawaflua/marusya-gemini/internal/media	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/media/ytdlp	0.035s
+?   	github.com/yawaflua/marusya-gemini/internal/models	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/openmeteo	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/provider	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/provider/claude	0.019s
+?   	github.com/yawaflua/marusya-gemini/internal/provider/echo	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/provider/gemini	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/sensor/light	0.002s
+ok  	github.com/yawaflua/marusya-gemini/internal/server	2.556s
+ok  	github.com/yawaflua/marusya-gemini/internal/skills	0.010s
+ok  	github.com/yawaflua/marusya-gemini/internal/skills/alarm	0.006s
+?   	github.com/yawaflua/marusya-gemini/internal/skills/clock	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/skills/homeassistant	0.011s
+?   	github.com/yawaflua/marusya-gemini/internal/skills/weather	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/speech	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/speech/geminispeech	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/syscmd	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/tools	0.013s
+ok  	github.com/yawaflua/marusya-gemini/internal/touchkeys	0.206s
+?   	github.com/yawaflua/marusya-gemini/internal/transport	[no test files]
+ok  	github.com/yawaflua/marusya-gemini/internal/vad	0.005s
+ok  	github.com/yawaflua/marusya-gemini/internal/wake	0.006s
+?   	github.com/yawaflua/marusya-gemini/internal/wakeword	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/wakeword/button	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/wakeword/exec	[no test files]
+?   	github.com/yawaflua/marusya-gemini/internal/wakeword/signal	[no test files]

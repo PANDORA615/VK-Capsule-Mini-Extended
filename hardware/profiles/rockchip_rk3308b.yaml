@@ -1,0 +1,23 @@
+id: rockchip_rk3308b
+status: hardware_verification_required
+evidence: third_party_publication
+source: https://debianlive.ru/2026/08/vk-mini-legacy-amlogic-a113x-часть-1-ставим-alpine-со-свежим-майнла/
+soc: Rockchip RK3308B
+board_revision: unknown
+signatures:
+  compatible_contains: rk3308b
+  usb_vid_pid: null
+kernel_verified: null
+bootloader_verified: null
+drivers:
+  alsa: unverified
+  microphones: unverified
+  wifi: unverified
+  front_display: unverified
+  top_led: unverified
+  buttons: unverified
+backup_method: owner_export_only
+recovery_method: unverified
+flash_write_allowed: false
+limitations:
+  - A113X installation and drivers do not establish support for this SoC

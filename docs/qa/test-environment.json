@@ -1,0 +1,19 @@
+{
+  "python": "3.12.14",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "packages": {
+    "fastapi": "0.141.1",
+    "starlette": "1.6.0",
+    "httpx": "0.28.1",
+    "pydantic": "2.13.4",
+    "pydantic-settings": "2.15.0",
+    "uvicorn": "0.52.1",
+    "google-genai": "2.33.0",
+    "vosk": "not installed",
+    "pytest": "9.2.0",
+    "pytest-asyncio": "1.4.1",
+    "ruff": "0.17.3",
+    "mypy": "1.20.2",
+    "playwright": "1.62.0"
+  }
+}
