@@ -69,7 +69,7 @@ class MarusyaBridge:
 
 
 class GeminiCapsulaBridge:
-    """Published yawaflua panel contract; only night-light commands are exposed."""
+    """Published yawaflua panel contract; only explicit device controls are exposed."""
 
     def __init__(self, url: str, device_id: str, password: str, transport=None):
         self.url, self.device_id, self.password = url.rstrip("/"), device_id, password
@@ -101,10 +101,45 @@ class GeminiCapsulaBridge:
                 "configured": True,
                 "connected": True,
                 "night_light_supported": "light.night" in device["capabilities"],
+                "capabilities": device["capabilities"],
                 "hardware_verified": False,
             }
         except (httpx.HTTPError, KeyError, ValueError, TypeError):
             return {"configured": True, "connected": False, "hardware_verified": False}
+
+    async def command(self, action: str, args: dict):
+        allowed = {
+            "volume.adjust",
+            "volume.mute",
+            "media.control",
+            "bluetooth.pair",
+            "bluetooth.devices",
+        }
+        if action not in allowed:
+            raise ValueError("Команда не разрешена через веб-панель")
+        if not self.configured:
+            raise ValueError("Настройте адрес, ID и пароль панели агента в .env")
+        try:
+            async with httpx.AsyncClient(
+                timeout=15, transport=self.transport, headers={"X-Marusya-Panel": "1"}
+            ) as client:
+                device = await self._session(client)
+                if action not in device["capabilities"]:
+                    raise ValueError("Агент не объявил поддержку " + action)
+                result = await client.post(
+                    self.url
+                    + "/panel/api/devices/"
+                    + quote(device["session"], safe="")
+                    + "/command",
+                    json={"action": action, "args": args},
+                )
+                result.raise_for_status()
+                payload = result.json()
+                if not payload.get("ok"):
+                    raise ValueError("Агент не подтвердил команду")
+                return {"agent_acknowledged": True, "data": payload.get("data", {})}
+        except (httpx.HTTPError, KeyError, TypeError):
+            raise ValueError("Не удалось выполнить команду через аппаратный агент") from None
 
     async def light(self, on: bool, color: str, brightness: int):
         if not self.configured:

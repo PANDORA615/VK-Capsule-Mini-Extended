@@ -7,23 +7,17 @@ from capsule.assistant import Answer, ProviderError
 from capsule.config import Settings
 
 
-def test_lights_and_case_persist_independently(settings):
+def test_lights_and_voice_preferences_persist(settings):
     value = {"color": "#ffb66e", "brightness": 25, "enabled": True, "effect": "breathe"}
     with TestClient(create_app(settings)) as client:
         assert client.get("/").status_code == 200
         assert client.post("/api/v1/lights/top", json=value).status_code == 200
-        assert (
-            client.post(
-                "/api/v1/preferences", json={"case_color": "blue", "wake_word": ""}
-            ).status_code
-            == 200
-        )
+        assert client.post("/api/v1/preferences", json={"wake_word": ""}).status_code == 200
         device = client.get("/api/v1/device").json()
         assert device["lights"]["zones"]["top"] == value
         assert device["lights"]["zones"]["front"]["brightness"] == 60
     with TestClient(create_app(settings)) as client:
         device = client.get("/api/v1/device").json()
-        assert device["preferences"]["case_color"] == "blue"
         assert device["preferences"]["wake_word"] == ""
         assert device["lights"]["zones"]["top"] == value
 
@@ -94,11 +88,10 @@ def test_body_and_preferences_validation(settings):
     with TestClient(create_app(settings)) as client:
         assert client.post("/api/v1/lights/invalid", json={}).status_code == 422
         assert client.post("/api/v1/lights/front", json={"brightness": 500}).status_code == 422
-        assert client.post("/api/v1/preferences", json={"case_color": "invalid"}).status_code == 422
         assert client.post("/api/v1/voice/transcribe", content=b"a" * 1_100_001).status_code == 413
 
 
-def test_general_question_and_removed_player_endpoints(settings):
+def test_general_question_and_assistant_radio_feature(settings):
     class Assistant:
         async def answer(self, text, pcm=None):
             assert text == "Объясни почему небо голубое"
@@ -109,5 +102,37 @@ def test_general_question_and_removed_player_endpoints(settings):
     with TestClient(app) as client:
         reply = client.post("/api/v1/commands", json={"text": "Объясни почему небо голубое"}).json()
         assert not reply["local"] and "рассеяния" in reply["text"]
-        assert not any("/radio/" in route.path for route in app.routes)
+        assert any("/api/v1/radio/status" == route.path for route in app.routes)
+        assert client.post("/api/v1/commands", json={"text": "включи Радио Дача"}).json()["local"]
         assert client.post("/api/v1/commands", json={"text": "стоп"}).json()["playback"] == "stop"
+
+
+def test_radio_does_not_spend_ai_quota_and_survives_offline(settings):
+    import time
+
+    class Fail:
+        calls = 0
+
+        async def answer(self, text, pcm=None):
+            self.calls += 1
+            raise ProviderError(429)
+
+    fail = Fail()
+    app = create_app(settings)
+    app.state.router.primary = app.state.router.fallback = fail
+    with TestClient(app) as client:
+        response = client.post("/api/v1/commands", json={"text": "включи Радио Дача"}).json()
+        assert response["local"] and fail.calls == 0
+        time.sleep(1.1)
+        client.post("/api/v1/commands", json={"text": "расскажи про космос"})
+        assert client.get("/api/v1/radio/status").json()["state"] == "PLAYING"
+        client.post("/api/v1/commands", json={"text": "выключи радио"})
+        assert client.get("/api/v1/radio/status").json()["state"] == "IDLE"
+
+
+def test_controls_need_agent_and_reject_shell(settings):
+    with TestClient(create_app(settings)) as client:
+        assert client.post("/api/v1/device/control", json={"action": "shell"}).status_code == 422
+        assert client.post("/api/v1/device/control", json={"action": "louder"}).status_code == 400
+        device = client.get("/api/v1/device").json()
+        assert not device["ssh"]["access_verified"]

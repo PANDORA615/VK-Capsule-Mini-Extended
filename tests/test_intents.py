@@ -6,6 +6,11 @@ from capsule.intents import parse
 @pytest.mark.parametrize(
     "phrase,action,value",
     [
+        ("включи радио Дача", "radio_play", "радио дача"),
+        ("включи радио", "radio_resume", None),
+        ("выключи радио", "radio_stop", None),
+        ("поставь радио на паузу", "radio_pause", None),
+        ("включи свет на кухне", "question", "включи свет на кухне"),
         ("громче", "volume_delta", 10),
         ("погромче", "volume_delta", 10),
         ("Маруся сделай погромче", "volume_delta", 10),

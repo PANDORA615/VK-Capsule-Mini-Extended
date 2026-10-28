@@ -10,6 +10,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y mpv
       - run: pip install -e '.[dev,ai]'
       - run: ruff check capsule tests scripts
       - run: ruff format --check capsule tests scripts
@@ -46,5 +47,4 @@ jobs:
         with:
           name: browser-report
           path: |
-            docs/assets/*.png
             docs/qa/browser-results.json

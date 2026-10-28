@@ -163,7 +163,7 @@
   ],
   "javascript_errors": [],
   "interactions": [
-    "five_case_colors",
+    "device_control_validation",
     "independent_light_zones",
     "reload_persistence",
     "general_question_without_prefix",

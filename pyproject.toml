@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vk-capsule-mini-extended"
-version = "0.2.0"
+version = "0.2.1"
 description = "Assistant companion, interactive Capsule menu and device simulator"
 requires-python = ">=3.12"
 dependencies = ["fastapi>=0.115,<1", "uvicorn[standard]>=0.30,<1", "httpx>=0.27,<1", "pydantic-settings>=2.6,<3", "typer>=0.12,<1", "PyYAML>=6,<7"]

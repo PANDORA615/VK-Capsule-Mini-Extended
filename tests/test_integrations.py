@@ -123,3 +123,50 @@ def test_official_sdk_schema_and_real_wav_format():
     assert config.response_modalities == [types.Modality.AUDIO]
     with wave.open(io.BytesIO(pcm_wav(b"\0\0" * 24000)), "rb") as handle:
         assert handle.getnframes() == 24000 and handle.getframerate() == 24000
+
+
+def test_ssh_uses_standard_client_with_host_verification(monkeypatch):
+    from types import SimpleNamespace
+
+    calls = []
+    monkeypatch.setenv("CAPSULE_SSH_HOST", "192.0.2.4")
+    monkeypatch.setenv("CAPSULE_SSH_USER", "root")
+    monkeypatch.setattr("capsule.cli.shutil.which", lambda name: "/usr/bin/ssh")
+
+    def run(args, check):
+        calls.append(args)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr("capsule.cli.subprocess.run", run)
+    assert CliRunner().invoke(app, ["ssh"]).exit_code == 0
+    assert calls[0][0] == "ssh"
+    assert "StrictHostKeyChecking=yes" in calls[0]
+    assert calls[0][-2:] == ["--", "192.0.2.4"]
+
+
+async def test_device_control_checks_capability_and_command_allowlist():
+    seen = []
+
+    def handler(request):
+        if request.url.path.endswith("login"):
+            return httpx.Response(200, json={"ok": True})
+        if request.url.path.endswith("state"):
+            return httpx.Response(
+                200,
+                json={
+                    "devices": [
+                        {"device_id": "own", "session": "s1", "capabilities": ["volume.adjust"]}
+                    ]
+                },
+            )
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"ok": True, "data": {"level": 40}})
+
+    bridge = GeminiCapsulaBridge(
+        "http://device.invalid", "own", "fixture", httpx.MockTransport(handler)
+    )
+    result = await bridge.command("volume.adjust", {"delta": 5})
+    assert result["agent_acknowledged"] and result["data"]["level"] == 40
+    assert seen == [{"action": "volume.adjust", "args": {"delta": 5}}]
+    with pytest.raises(ValueError):
+        await bridge.command("shell", {"command": "anything"})

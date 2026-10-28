@@ -2,6 +2,7 @@ import hashlib
 import json
 import shutil
 import struct
+import subprocess
 import time
 from pathlib import Path
 
@@ -58,6 +59,7 @@ def doctor():
         {
             "mode": cfg.capsule_mode,
             "python": "3.12+",
+            "mpv": bool(shutil.which("mpv")),
             "arecord": bool(shutil.which("arecord")),
             "aplay": bool(shutil.which("aplay")),
             "piper": bool(shutil.which("piper")),
@@ -65,8 +67,35 @@ def doctor():
             "google_key_configured": bool(cfg.google_api_key.get_secret_value()),
             "hardware_verification_required": True,
             "flash_write": "blocked",
+            "ssh_client": bool(shutil.which("ssh")),
+            "ssh_configured": bool(cfg.capsule_ssh_host),
         }
     )
+
+
+@app.command("ssh")
+def ssh_shell():
+    """Открыть обычный SSH-терминал собственной колонки; root должен уже существовать."""
+    cfg = Settings()
+    if not cfg.capsule_ssh_host:
+        raise typer.BadParameter("Укажите CAPSULE_SSH_HOST в .env")
+    if not shutil.which("ssh"):
+        raise typer.BadParameter("Установите OpenSSH client")
+    command = [
+        "ssh",
+        "-o",
+        "StrictHostKeyChecking=yes",
+        "-p",
+        str(cfg.capsule_ssh_port),
+        "-l",
+        cfg.capsule_ssh_user,
+    ]
+    if cfg.capsule_ssh_identity_file:
+        command.extend(["-i", cfg.capsule_ssh_identity_file])
+    if cfg.capsule_ssh_known_hosts_file:
+        command.extend(["-o", "UserKnownHostsFile=" + cfg.capsule_ssh_known_hosts_file])
+    command.extend(["--", cfg.capsule_ssh_host])
+    raise typer.Exit(subprocess.run(command, check=False).returncode)
 
 
 @app.command()

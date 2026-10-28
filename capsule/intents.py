@@ -16,6 +16,21 @@ def parse(text: str, wake_word: str = "маруся") -> Intent:
         text = re.sub(rf"^\s*{re.escape(prefix)}\b", "", text)
     text = re.sub(r"\bпожалуйста\b", "", text)
     text = " ".join(text.split())
+    if text in {"выключи радио", "останови радио"}:
+        return Intent("radio_stop")
+    if text in {"пауза радио", "приостанови радио", "поставь радио на паузу"}:
+        return Intent("radio_pause")
+    if text in {"включи радио", "поставь радио", "продолжи радио"}:
+        return Intent("radio_resume")
+    if text in {"другое радио", "следующая станция"}:
+        return Intent("radio_next")
+    if text == "предыдущая станция":
+        return Intent("radio_previous")
+    if text in {"что играет", "какое радио играет"}:
+        return Intent("radio_status")
+    play = re.fullmatch(r"(?:включи|поставь|запусти)\s+(.+)", text)
+    if play and ("радио" in play[1] or play[1] in {"дача", "дачу", "ретро фм", "ретро fm"}):
+        return Intent("radio_play", play[1])
     if text in {"стоп", "хватит", "останови ответ", "замолчи"}:
         return Intent("stop_answer")
     if text in {"громче", "погромче", "сделай погромче", "сделай громче", "прибавь громкость"}:

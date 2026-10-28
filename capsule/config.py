@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     gemini_routing: Literal["auto", "live_only", "fallback_only"] = "auto"
     gemini_cooldown_seconds: int = Field(default=120, ge=1)
     assistant_max_volume: int = Field(default=75, ge=1, le=100)
+    radio_max_volume: int = Field(default=75, ge=1, le=100)
+    radio_resume_after_reboot: bool = False
+    radio_directory_url: str = "https://de1.api.radio-browser.info"
+    radio_default_station: str = "Радио Дача"
     vosk_model_path: str = ""
     piper_model_path: str = ""
     marusya_server_url: str = ""
@@ -26,6 +30,11 @@ class Settings(BaseSettings):
     gemini_capsula_url: str = ""
     gemini_capsula_device_id: str = ""
     gemini_capsula_panel_password: SecretStr = SecretStr("")
+    capsule_ssh_host: str = Field(default="", pattern=r"^$|^[A-Za-z0-9:][A-Za-z0-9_.:-]*$")
+    capsule_ssh_user: str = Field(default="root", pattern=r"^[A-Za-z_][A-Za-z0-9_.-]*$")
+    capsule_ssh_port: int = Field(default=22, ge=1, le=65535)
+    capsule_ssh_identity_file: str = ""
+    capsule_ssh_known_hosts_file: str = ""
 
     @model_validator(mode="after")
     def require_lan_auth(self):

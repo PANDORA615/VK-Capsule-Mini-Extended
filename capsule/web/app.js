@@ -59,11 +59,6 @@ function applyLights() {
   const zones = state.device.lights.zones;
   for (const name of ["front","top"]) {
     const value = zones[name];
-    document.documentElement.style.setProperty("--" + name, value.color);
-    document.documentElement.style.setProperty("--" + name + "-opacity", value.enabled ? value.brightness / 100 : 0);
-    const el = $(name === "top" ? ".top-light" : ".front-light");
-    el.classList.remove("effect-breathe", "effect-pulse");
-    if (value.effect !== "steady") el.classList.add("effect-" + value.effect);
     $("#" + name + "-state").textContent = value.enabled ? value.brightness + "%" : "Выключено";
   }
   $("#light-summary").textContent = [zones.front,zones.top].filter(z => z.enabled).length + " из 2 зон включены";
@@ -76,8 +71,6 @@ function renderEditor() {
   $("#light-enabled").checked = value.enabled; $("#light-color").value = value.color;
   $("#brightness").value = value.brightness; $("#brightness-value").textContent = value.brightness + "%";
   $("#effect").value = value.effect;
-  $("#light-halo").style.setProperty("--halo",value.color);
-  $("#light-halo").style.opacity = value.enabled ? Math.max(.1,value.brightness / 100) : .1;
 }
 async function saveLight() {
   if (!state.device || busyLight) return;
@@ -95,7 +88,6 @@ async function saveLight() {
 for (const id of ["#light-enabled", "#light-color", "#brightness", "#effect"]) $(id).onchange = act(saveLight);
 $("#brightness").oninput = () => $("#brightness-value").textContent = $("#brightness").value + "%";
 $$('[data-color]').forEach(el => el.onclick = act(async () => {$("#light-color").value = el.dataset.color; await saveLight();}));
-const presets = {cozy:{color:"#ffb66e",brightness:45,effect:"steady"},night:{color:"#b49aff",brightness:20,effect:"breathe"},bright:{color:"#88e7cb",brightness:85,effect:"steady"}};
 const physical = document.createElement("article"); physical.className = "card physical-bridge";
 physical.innerHTML = '<h2>Подключить настоящую Капсулу</h2><p class="muted">Если на вашей колонке уже установлен совместимый агент, укажите его сервер в .env и проверьте подключение.</p><button class="secondary" id="check-bridges">Проверить серверы колонки</button><p id="bridge-status" class="muted" aria-live="polite">Проверка подключения выполняется по нажатию.</p><div class="bridge-actions"><button class="secondary" id="send-top" hidden>Отправить верхний свет на колонку</button><button class="secondary" id="send-clock" hidden>Применить яркость переднего дисплея</button></div>';
 $("#tab-lights").append(physical);
@@ -114,12 +106,6 @@ $("#send-clock").onclick = act(async()=>{
   await api("bridge/clock",{enabled:front.enabled,brightness:front.brightness});
   toast("Настройка дисплея принята сервером; проверьте колонку.");
 });
-$$('[data-preset]').forEach(el => el.onclick = act(async () => {
-  const value = {...presets[el.dataset.preset],enabled:true};
-  await api("lights/top",value); await api("lights/front",{...value,effect:"steady"});
-  await refresh(); renderEditor(); toast("Световое настроение сохранено");
-}));
-$("#touch-ask").onclick = () => {tab("home");$("#command").focus();};
 $("#stop-answer").onclick = () => {
   $("#reply-audio").pause();$("#reply-audio").removeAttribute("src");
   answerEpoch++; requestController?.abort();
@@ -127,9 +113,6 @@ $("#stop-answer").onclick = () => {
 };
 $("#volume").oninput = () => $("#volume-value").textContent = $("#volume").value + "%";
 $("#volume").onchange = act(async () => {state.audio=await api("audio/volume",{value:Number($("#volume").value)});renderAudio();});
-for (const [id,delta] of [["#touch-plus",10],["#touch-minus",-10]]) $(id).onclick = act(async () => {
-  await api("commands",{text:delta>0 ? "громче" : "тише"});await refresh();
-});
 let requestController=null,answerEpoch=0;
 async function answerAudio(reply) {
   if(reply.playback==="stop")$("#reply-audio").pause();
@@ -153,12 +136,10 @@ $("#command-form").onsubmit = act(async event => {
   finally {button.disabled=false;}
 });
 async function savePreferences() {
-  const value = {microphone_muted:$("#mic-muted").checked,wake_word:$("#wake-word").value.trim(),case_color:$("#case-color").value};
+  const value = {microphone_muted:$("#mic-muted").checked,wake_word:$("#wake-word").value.trim()};
   state.device.preferences = await api("preferences", value); toast("Настройки сохранены");
-  document.documentElement.dataset.case=state.device.preferences.case_color;
 }
 $("#mic-muted").onchange = $("#save-wake").onclick = act(savePreferences);
-$("#case-color").onchange = act(savePreferences);
 $("#ai-mode").onchange = act(async () => {await api("assistant/mode",{mode:$("#ai-mode").value}); await refresh();});
 $("#save-token").onclick = act(async () => {
   token = $("#owner-token").value.trim(); sessionStorage.setItem("capsule-token",token);
@@ -173,14 +154,13 @@ async function refresh() {
     $("#mode-badge").textContent = simulated ? "Режим симуляции" : "Сервер подключён";
     $("#assistant-status").textContent = state.ai.active_model || "Модель не активна";
     $("#mic-muted").checked = state.device.preferences.microphone_muted;
-    document.documentElement.dataset.case=state.device.preferences.case_color;
-    if(document.activeElement!==$("#case-color"))$("#case-color").value=state.device.preferences.case_color;
-    if (document.activeElement !== $("#wake-word")) $("#wake-word").value = state.device.preferences.wake_word;
+      if (document.activeElement !== $("#wake-word")) $("#wake-word").value = state.device.preferences.wake_word;
     if (document.activeElement !== $("#ai-mode")) $("#ai-mode").value = state.ai.mode;
     $("#ai-details").replaceChildren();
     const labels = {PRIMARY_LIVE:"Gemini Live",FALLBACK_FLASH_LITE:"Flash-Lite + Piper",OFFLINE_COMMANDS_ONLY:"Только локальные команды"};
     for (const text of ["Состояние: " + labels[state.ai.state],"Модель: " + (state.ai.active_model || "не активна"),"Причина: " + state.ai.reason,"Квота: нет достоверных данных"]){const p=document.createElement("p");p.textContent=text;$("#ai-details").append(p);}
     $("#device-details").textContent = "Профиль платы: не определён · Индикаторы: виртуальные · STT: " + (state.device.voice.stt_configured ? "настроен" : "не настроен") + " · TTS: " + (state.device.voice.tts_configured ? "настроен" : "не настроен");
+    $("#ssh-status").textContent=state.device.ssh.configured ? "SSH настроен для учётной записи "+state.device.ssh.user+". Фактический доступ не проверен." : "SSH не настроен. Укажите адрес и учётную запись в .env.";
     renderAudio(); applyLights();
   } catch(error) {
     document.body.classList.add("disconnected");$(".sidebar-bottom").classList.add("disconnected");
@@ -216,8 +196,16 @@ $$(".record-command").forEach(recordButton=>recordButton.onclick=act(async () =>
   } finally {processor?.disconnect();source?.disconnect();stream?.getTracks().forEach(t=>t.stop());if(context)await context.close(); $$(".record-command").forEach(b=>b.disabled=false);}
 }));
 $("#today").textContent=new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",weekday:"long"});
-function clock(){const value=new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});$("#clock").textContent=value;$(".front-preview").textContent=value;}
-clock();setInterval(clock,10000);
 tab(location.hash.slice(1)||"home");
 (async()=>{try{await refresh();renderEditor();}catch(error){toast(error.message);}})();
 setInterval(()=>refresh().catch(()=>{}),2500);
+
+$("#check-device").onclick=act(async()=>{
+ const status=await api("integrations/capsula/status");
+ $("#agent-status").textContent=status.connected ? "Агент подключён. Возможности: "+status.capabilities.join(", ") : status.configured ? "Агент недоступен" : "Укажите адрес сервера, ID устройства и пароль панели в .env";
+});
+$$("[data-device-action]").forEach(button=>button.onclick=act(async()=>{
+ button.disabled=true;
+ try{const result=await api("device/control",{action:button.dataset.deviceAction});$("#device-control-result").textContent="Агент подтвердил команду. "+JSON.stringify(result.data);}
+ finally{button.disabled=false;}
+}));
